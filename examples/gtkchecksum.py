@@ -22,8 +22,8 @@
 
 import sys
 
-import gobject
-gobject.threads_init()
+from gi.repository import GObject
+GObject.threads_init()
 
 import gtk
 

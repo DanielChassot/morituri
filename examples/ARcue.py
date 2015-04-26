@@ -24,8 +24,8 @@ import os
 import sys
 import optparse
 
-import gobject
-gobject.threads_init()
+from gi.repository import GObject
+GObject.threads_init()
 import gtk
 
 from morituri.image import image

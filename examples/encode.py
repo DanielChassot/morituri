@@ -27,10 +27,9 @@ import tempfile
 import pickle
 import shutil
 
-import gobject
-gobject.threads_init()
-
-import gst
+from gi.repository import GObject, Gst
+GObject.threads_init()
+Gst.init(None)
 
 import gtk
 
@@ -82,8 +81,8 @@ def main(argv):
     options, args = parser.parse_args(argv[1:])
 
     taglist = gst.TagList()
-    taglist[gst.TAG_ARTIST] = 'Thomas'
-    taglist[gst.TAG_TITLE] = 'Yes'
+    taglist[Gst.TAG_ARTIST] = 'Thomas'
+    taglist[Gst.TAG_TITLE] = 'Yes'
     taskk = encode.EncodeTask(args[0], args[1], taglist=taglist)
 
     if options.runner == 'cli':

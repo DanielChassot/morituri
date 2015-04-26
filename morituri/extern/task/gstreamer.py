@@ -65,8 +65,9 @@ class GstPipelineTask(task.Task):
 
     ### task.Task implementations
     def start(self, runner):
-        import gst
-        self.gst = gst
+        from gi.repository import Gst
+        Gst.init(None)
+        self.gst = Gst
 
         task.Task.start(self, runner)
 
@@ -90,10 +91,10 @@ class GstPipelineTask(task.Task):
         self.parsed()
 
         self.debug('setting pipeline to PAUSED')
-        self.pipeline.set_state(gst.STATE_PAUSED)
+        self.pipeline.set_state(self.gst.State.PAUSED)
         self.debug('set pipeline to PAUSED')
         # FIXME: this can block
-        ret = self.pipeline.get_state()
+        ret = self.pipeline.get_state(self.gst.CLOCK_TIME_NONE)
         self.debug('got pipeline to PAUSED: %r', ret)
 
         # GStreamer tasks could already be done in paused, and not
@@ -112,8 +113,8 @@ class GstPipelineTask(task.Task):
     def play(self):
         # since set_state returns non-False, adding it as timeout_add
         # will repeatedly call it, and block the main loop; so
-        #   gobject.timeout_add(0L, self._pipeline.set_state,
-        #       gst.STATE_PLAYING)
+        #   GObject.timeout_add(0L, self._pipeline.set_state,
+        #       self.gst.State.PLAYING)
         # would not work.
         def playLater():
             if self.exception:
@@ -122,7 +123,7 @@ class GstPipelineTask(task.Task):
                 return False
 
             self.debug('setting pipeline to PLAYING')
-            self.pipeline.set_state(self.gst.STATE_PLAYING)
+            self.pipeline.set_state(self.gst.State.PLAYING)
             self.debug('set pipeline to PLAYING')
             return False
 
@@ -138,14 +139,14 @@ class GstPipelineTask(task.Task):
         # but in practice we can still get
         # python: /builddir/build/BUILD/Python-2.7/Python/pystate.c:595: PyGILState_Ensure: Assertion `autoInterpreterState' failed.
 
-        self.pipeline.set_state(self.gst.STATE_READY)
+        self.pipeline.set_state(self.gst.State.READY)
         self.debug('set pipeline to READY')
         # FIXME: this can block
-        ret = self.pipeline.get_state()
+        ret = self.pipeline.get_state(self.gst.CLOCK_TIME_NONE)
         self.debug('got pipeline to READY: %r', ret)
 
         self.debug('setting state to NULL')
-        self.pipeline.set_state(self.gst.STATE_NULL)
+        self.pipeline.set_state(self.gst.State.NULL)
         self.debug('set state to NULL')
         self.stopped()
         task.Task.stop(self)
@@ -226,12 +227,12 @@ class GstPipelineTask(task.Task):
         # get duration
         self.debug('query duration')
         try:
-            duration, qformat = element.query_duration(self.gst.FORMAT_DEFAULT)
+            duration, qformat = element.query_duration(self.gst.Format.DEFAULT)
         except self.gst.QueryError, e:
             # Fall back to time; for example, oggdemux/vorbisdec only supports
             # TIME
             try:
-                duration, qformat = element.query_duration(self.gst.FORMAT_TIME)
+                duration, qformat = element.query_duration(self.gst.Format.TIME)
             except self.gst.QueryError, e:
                 self.setException(e)
                 # schedule it, otherwise runner can get set to None before
@@ -240,11 +241,11 @@ class GstPipelineTask(task.Task):
                 return
 
         # wavparse 0.10.14 returns in bytes
-        if qformat == self.gst.FORMAT_BYTES:
+        if qformat == self.gst.Format.BYTES:
             self.debug('query returned in BYTES format')
             duration /= 4
 
-        if qformat == self.gst.FORMAT_TIME:
+        if qformat == self.gst.Format.TIME:
             rate = None
             self.debug('query returned in TIME format')
             # we need sample rate

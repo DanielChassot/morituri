@@ -24,7 +24,8 @@ import os
 import struct
 import zlib
 
-import gst
+from gi.repository import Gst
+from gi.repository import GstBase
 
 from morituri.common import common
 from morituri.common import gstreamer as cgstreamer
@@ -86,7 +87,7 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
         self._bytes = 0 # number of bytes received
         self._first = None
         self._last = None
-        self._adapter = gst.Adapter()
+        self._adapter = GstBase.Adapter()
 
         self.checksum = None # result
 
@@ -97,7 +98,7 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
     def getPipelineDesc(self):
         return '''
             filesrc location="%s" !
-            decodebin name=decode ! audio/x-raw-int !
+            decodebin name=decode ! audio/x-raw !
             appsink name=sink sync=False emit-signals=True
             ''' % gstreamer.quoteParse(self._path).encode('utf-8')
 
@@ -107,13 +108,13 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
 
         self.debug('query duration')
         try:
-            length, qformat = sink.query_duration(gst.FORMAT_DEFAULT)
+            length, qformat = sink.query_duration(self.gst.Format.DEFAULT)
         except gst.QueryError, e:
             self.setException(e)
             return None
 
         # wavparse 0.10.14 returns in bytes
-        if qformat == gst.FORMAT_BYTES:
+        if qformat == gst.Format.BYTES:
             self.debug('query returned in BYTES format')
             length /= 4
         self.debug('total sample length of file: %r', length)
@@ -146,10 +147,10 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
             self.debug('No need to seek, crcing full file')
         else:
             # the segment end only is respected since -good 0.10.14.1
-            event = gst.event_new_seek(1.0, gst.FORMAT_DEFAULT,
-                gst.SEEK_FLAG_FLUSH,
-                gst.SEEK_TYPE_SET, self._sampleStart,
-                gst.SEEK_TYPE_SET, self._sampleEnd + 1) # half-inclusive
+            event = Gst.event_new_seek(1.0, Gst.Format.DEFAULT,
+                Gst.SeekFlags.FLUSH,
+                Gst.SeekType.SET, self._sampleStart,
+                Gst.SeekType.SET, self._sampleEnd + 1) # half-inclusive
             self.debug('CRCing %r from frame %d to frame %d (excluded)' % (
                 self._path,
                 self._sampleStart / common.SAMPLES_PER_FRAME,
@@ -166,15 +167,15 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
         self.debug('scheduling setting to play')
         # since set_state returns non-False, adding it as timeout_add
         # will repeatedly call it, and block the main loop; so
-        #   gobject.timeout_add(0L, self.pipeline.set_state, gst.STATE_PLAYING)
+        #   gobject.timeout_add(0L, self.pipeline.set_state, Gst.State.PLAYING)
         # would not work.
 
         def play():
-            self.pipeline.set_state(gst.STATE_PLAYING)
+            self.pipeline.set_state(Gst.State.PLAYING)
             return False
         self.schedule(0, play)
 
-        #self.pipeline.set_state(gst.STATE_PLAYING)
+        #self.pipeline.set_state(Gst.State.PLAYING)
         self.debug('scheduled setting to play')
 
     def stopped(self):
@@ -223,7 +224,7 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
 
     def _new_buffer_cb(self, sink):
         buf = sink.emit('pull-buffer')
-        gst.log('received new buffer at offset %r with length %r' % (
+        Gst.log('received new buffer at offset %r with length %r' % (
             buf.offset, buf.size))
         if self._first is None:
             self._first = buf.offset
@@ -295,7 +296,7 @@ class AccurateRipChecksumTask(ChecksumTask):
         if self._trackNumber == 1:
             # ... skip first 4 CD frames
             if self._discFrameCounter <= 4:
-                gst.debug('skipping frame %d' % self._discFrameCounter)
+                Gst.debug('skipping frame %d' % self._discFrameCounter)
                 return checksum
             # ... on 5th frame, only use last value
             elif self._discFrameCounter == 5:
@@ -347,7 +348,7 @@ class TRMTask(task.GstPipelineTask):
     def getPipelineDesc(self):
         return '''
             filesrc location="%s" !
-            decodebin ! audioconvert ! audio/x-raw-int !
+            decodebin ! audioconvert ! audio/x-raw !
             trm name=trm !
             appsink name=sink sync=False emit-signals=True''' % self.path
 
@@ -356,14 +357,14 @@ class TRMTask(task.GstPipelineTask):
         sink.connect('new-buffer', self._new_buffer_cb)
 
     def paused(self):
-        gst.debug('query duration')
+        Gst.debug('query duration')
 
-        self._length, qformat = self.pipeline.query_duration(gst.FORMAT_TIME)
-        gst.debug('total length: %r' % self._length)
-        gst.debug('scheduling setting to play')
+        self._length, qformat = self.pipeline.query_duration(Gst.Format.TIME)
+        Gst.debug('total length: %r' % self._length)
+        Gst.debug('scheduling setting to play')
         # since set_state returns non-False, adding it as timeout_add
         # will repeatedly call it, and block the main loop; so
-        #   gobject.timeout_add(0L, self.pipeline.set_state, gst.STATE_PLAYING)
+        #   gobject.timeout_add(0L, self.pipeline.set_state, Gst.State.PLAYING)
         # would not work.
 
 
@@ -371,7 +372,7 @@ class TRMTask(task.GstPipelineTask):
     # in the case of checksum
 
     def bus_eos_cb(self, bus, message):
-        gst.debug('eos, scheduling stop')
+        Gst.debug('eos, scheduling stop')
         self.schedule(0, self.stop)
 
     def bus_tag_cb(self, bus, message):
@@ -383,7 +384,7 @@ class TRMTask(task.GstPipelineTask):
         # this is just for counting progress
         buf = sink.emit('pull-buffer')
         position = buf.timestamp
-        if buf.duration != gst.CLOCK_TIME_NONE:
+        if buf.duration != Gst.CLOCK_TIME_NONE:
             position += buf.duration
         self.setProgress(float(position) / self._length)
 

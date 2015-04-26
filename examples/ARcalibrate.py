@@ -25,8 +25,8 @@ import sys
 import tempfile
 import optparse
 
-import gobject
-gobject.threads_init()
+from gi.repository import GObject
+GObject.threads_init()
 
 from morituri.image import image
 from morituri.common import task, checksum

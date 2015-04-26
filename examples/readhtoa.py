@@ -10,8 +10,8 @@ import shutil
 from morituri.common import task, checksum, log
 from morituri.program import cdrdao, cdparanoia
 
-import gobject
-gobject.threads_init()
+from gi.repository import GObject
+GObject.threads_init()
 
 def main():
     log.init()

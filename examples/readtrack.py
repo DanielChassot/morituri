@@ -12,8 +12,8 @@ from morituri.common import task, checksum, log
 from morituri.image import table
 from morituri.program import cdparanoia
 
-import gobject
-gobject.threads_init()
+from gi.repository import GObject
+GObject.threads_init()
 
 def main():
     log.init()

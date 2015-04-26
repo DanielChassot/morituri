@@ -58,9 +58,9 @@ class FlacProfile(Profile):
     def test(self):
 
         # here to avoid import gst eating our options
-        import gst
+        from gi.repository import Gst
 
-        plugin = gst.registry_get_default().find_plugin('flac')
+        plugin = Gst.registry_get_default().find_plugin('flac')
         if not plugin:
             print 'ERROR: cannot find flac plugin'
             return False
@@ -212,7 +212,7 @@ class EncodeTask(ctask.GstPipelineTask):
         return '''
             filesrc location="%s" !
             decodebin name=decoder !
-            audio/x-raw-int,width=16,depth=16,channels=2 !
+            audio/x-raw,width=16,depth=16,channels=2 !
             level name=level interval=%d !
             %s ! identity name=identity !
             filesink location="%s" name=sink''' % (
@@ -229,7 +229,7 @@ class EncodeTask(ctask.GstPipelineTask):
             # FIXME: under which conditions do we not have merge_tags ?
             # See for example comment saying wavenc did not have it.
             try:
-                tagger.merge_tags(self._taglist, self.gst.TAG_MERGE_APPEND)
+                tagger.merge_tags(self._taglist, self.gst.TagMergeMode.APPEND)
             except AttributeError, e:
                 self.warning('Could not merge tags: %r',
                     log.getExceptionMessage(e))
@@ -239,7 +239,7 @@ class EncodeTask(ctask.GstPipelineTask):
         identity = self.pipeline.get_by_name('identity')
         self.debug('query duration')
         try:
-            length, qformat = identity.query_duration(self.gst.FORMAT_DEFAULT)
+            length, qformat = identity.query_duration(self.gst.Fotmat.DEFAULT)
         except self.gst.QueryError, e:
             self.setException(e)
             self.stop()
@@ -247,7 +247,7 @@ class EncodeTask(ctask.GstPipelineTask):
 
 
         # wavparse 0.10.14 returns in bytes
-        if qformat == self.gst.FORMAT_BYTES:
+        if qformat == self.gst.Format.BYTES:
             self.debug('query returned in BYTES format')
             length /= 4
         self.debug('total length: %r', length)
@@ -255,7 +255,7 @@ class EncodeTask(ctask.GstPipelineTask):
 
         duration = None
         try:
-            duration, qformat = identity.query_duration(self.gst.FORMAT_TIME)
+            duration, qformat = identity.query_duration(self.gst.Format.TIME)
         except self.gst.QueryError, e:
             self.debug('Could not query duration')
         self._duration = duration
@@ -375,8 +375,8 @@ class TagReadTask(ctask.GstPipelineTask):
         if not self.taglist:
             self.taglist = taglist
         else:
-            import gst
-            self.taglist = self.taglist.merge(taglist, gst.TAG_MERGE_REPLACE)
+            from gi.repository import Gst
+            self.taglist = self.taglist.merge(taglist, Gst.TagMergeMode.REPLACE)
 
 
 class TagWriteTask(ctask.LoggableTask):
@@ -402,11 +402,11 @@ class TagWriteTask(ctask.LoggableTask):
         task.Task.start(self, runner)
 
         # here to avoid import gst eating our options
-        import gst
+        from gi.repository import Gst
 
         # FIXME: this hardcodes flac; we should be using the correct
         #        tag element instead
-        self._pipeline = gst.parse_launch('''
+        self._pipeline = Gst.parse_launch('''
             filesrc location="%s" !
             flactag name=tagger !
             filesink location="%s"''' % (
@@ -416,11 +416,11 @@ class TagWriteTask(ctask.LoggableTask):
         # set tags
         tagger = self._pipeline.get_by_name('tagger')
         if self._taglist:
-            tagger.merge_tags(self._taglist, gst.TAG_MERGE_APPEND)
+            tagger.merge_tags(self._taglist, Gst.TagMergeMode.APPEND)
 
         self.debug('pausing pipeline')
-        self._pipeline.set_state(gst.STATE_PAUSED)
-        self._pipeline.get_state()
+        self._pipeline.set_state(Gst.State.PAUSED)
+        self._pipeline.get_state(Gst.CLOCK_TIME_NONE)
         self.debug('paused pipeline')
 
         # add eos handling
@@ -432,15 +432,15 @@ class TagWriteTask(ctask.LoggableTask):
         # since set_state returns non-False, adding it as timeout_add
         # will repeatedly call it, and block the main loop; so
         #   gobject.timeout_add(0L, self._pipeline.set_state,
-        #       gst.STATE_PLAYING)
+        #       Gst.State.PLAYING)
         # would not work.
 
         def play():
-            self._pipeline.set_state(gst.STATE_PLAYING)
+            self._pipeline.set_state(Gst.State.PLAYING)
             return False
         self.schedule(0, play)
 
-        #self._pipeline.set_state(gst.STATE_PLAYING)
+        #self._pipeline.set_state(Gst.State.PLAYING)
         self.debug('scheduled setting to play')
 
     def _message_eos_cb(self, bus, message):
@@ -448,12 +448,12 @@ class TagWriteTask(ctask.LoggableTask):
         self.schedule(0, self.stop)
 
     def stop(self):
-        # here to avoid import gst eating our options
-        import gst
+        # here to avoid import Gst eating our options
+        from gi.repository import Gst
 
         self.debug('stopping')
         self.debug('setting state to NULL')
-        self._pipeline.set_state(gst.STATE_NULL)
+        self._pipeline.set_state(Gst.State.NULL)
         self.debug('set state to NULL')
         task.Task.stop(self)
 

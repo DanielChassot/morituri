@@ -26,8 +26,8 @@ import glob
 import urllib2
 import socket
 
-import gobject
-gobject.threads_init()
+from gi.repository import GObject
+GObject.threads_init()
 
 from morituri.common import logcommand, common, accurip, gstreamer
 from morituri.common import drive, program, task

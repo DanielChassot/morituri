@@ -4,10 +4,9 @@
 import os
 import tempfile
 
-import gobject
-gobject.threads_init()
-
-import gst
+from gi.repository import GObject, Gst
+GObject.threads_init()
+Gst.init(None)
 
 from morituri.common import encode
 
@@ -93,8 +92,8 @@ class TagWriteTestCase(common.TestCase):
         fd, outpath = tempfile.mkstemp(suffix=u'.morituri.tagwrite.flac')
         self.runner = task.SyncRunner(verbose=False)
         taglist = gst.TagList()
-        taglist[gst.TAG_ARTIST] = 'Artist'
-        taglist[gst.TAG_TITLE] = 'Title'
+        taglist[Gst.TAG_ARTIST] = 'Artist'
+        taglist[Gst.TAG_TITLE] = 'Title'
 
         t = encode.TagWriteTask(inpath, outpath, taglist)
         self.runner.run(t)
@@ -104,8 +103,8 @@ class TagWriteTestCase(common.TestCase):
         self.failUnless(t.taglist)
         self.assertEquals(t.taglist['audio-codec'], 'FLAC')
         self.assertEquals(t.taglist['description'], 'audiotest wave')
-        self.assertEquals(t.taglist[gst.TAG_ARTIST], 'Artist')
-        self.assertEquals(t.taglist[gst.TAG_TITLE], 'Title')
+        self.assertEquals(t.taglist[Gst.TAG_ARTIST], 'Artist')
+        self.assertEquals(t.taglist[Gst.TAG_TITLE], 'Title')
 
         os.unlink(inpath)
         os.unlink(outpath)
@@ -130,17 +129,17 @@ class SafeRetagTestCase(common.TestCase):
 
     def testNoChange(self):
         taglist = gst.TagList()
-        taglist[gst.TAG_DESCRIPTION] = 'audiotest wave'
-        taglist[gst.TAG_AUDIO_CODEC] = 'FLAC'
+        taglist[Gst.TAG_DESCRIPTION] = 'audiotest wave'
+        taglist[Gst.TAG_AUDIO_CODEC] = 'FLAC'
 
         t = encode.SafeRetagTask(self._path, taglist)
         self.runner.run(t)
 
     def testChange(self):
         taglist = gst.TagList()
-        taglist[gst.TAG_DESCRIPTION] = 'audiotest retagged'
-        taglist[gst.TAG_AUDIO_CODEC] = 'FLAC'
-        taglist[gst.TAG_ARTIST] = 'Artist'
+        taglist[Gst.TAG_DESCRIPTION] = 'audiotest retagged'
+        taglist[Gst.TAG_AUDIO_CODEC] = 'FLAC'
+        taglist[Gst.TAG_ARTIST] = 'Artist'
 
         t = encode.SafeRetagTask(self._path, taglist)
         self.runner.run(t)

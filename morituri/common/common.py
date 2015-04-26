@@ -123,10 +123,10 @@ def formatTime(seconds, fractional=3):
 
 def tagListToDict(tl):
     """
-    Converts gst.TagList to dict.
+    Converts Gst.TagList to dict.
     Also strips it of tags that are not writable.
     """
-    import gst
+    from gi.repository import Gst
 
     d = {}
     for key in tl.keys():
@@ -134,11 +134,11 @@ def tagListToDict(tl):
             date = tl[key]
             d[key] = "%4d-%2d-%2d" % (date.year, date.month, date.day)
         elif key in [
-            gst.TAG_AUDIO_CODEC,
-            gst.TAG_VIDEO_CODEC,
-            gst.TAG_MINIMUM_BITRATE,
-            gst.TAG_BITRATE,
-            gst.TAG_MAXIMUM_BITRATE,
+            Gst.TAG_AUDIO_CODEC,
+            Gst.TAG_VIDEO_CODEC,
+            Gst.TAG_MINIMUM_BITRATE,
+            Gst.TAG_BITRATE,
+            Gst.TAG_MAXIMUM_BITRATE,
             ]:
             pass
         else:

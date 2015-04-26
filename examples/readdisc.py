@@ -27,8 +27,8 @@ import optparse
 import pickle
 import shutil
 
-import gobject
-gobject.threads_init()
+from gi.repository import GObject
+GObject.threads_init()
 
 from morituri.common import common, task, checksum
 from morituri.image import image, cue, table

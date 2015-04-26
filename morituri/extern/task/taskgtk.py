@@ -20,7 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with morituri.  If not, see <http://www.gnu.org/licenses/>.
 
-import gobject
+from gi.repository import GObject
 import gtk
 
 import task
@@ -31,7 +31,7 @@ class GtkProgressRunner(gtk.VBox, task.TaskRunner):
     """
 
     __gsignals__ = {
-        'stop': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
+        'stop': (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, ())
     }
 
     def __init__(self):
@@ -57,7 +57,7 @@ class GtkProgressRunner(gtk.VBox, task.TaskRunner):
         def c():
             callable(*args, **kwargs)
             return False
-        gobject.timeout_add(int(delta * 1000L), c)
+        GObject.timeout_add(int(delta * 1000L), c)
 
     def started(self, task):
         pass

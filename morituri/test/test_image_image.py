@@ -4,10 +4,9 @@
 import os
 import tempfile
 
-import gobject
-gobject.threads_init()
-
-import gst
+from gi.repository import GObject, Gst
+GObject.threads_init()
+Gst.init(None)
 
 from morituri.image import image
 from morituri.common import common, log
@@ -107,10 +106,10 @@ class AudioLengthPathTestCase(tcommon.TestCase):
             t, verbose=False)
         self.failUnless(isinstance(e.exception, gstreamer.GstException),
             "%r is not a gstreamer.GstException" % e.exceptionMessage)
-        self.assertEquals(e.exception.gerror.domain, gst.STREAM_ERROR)
+        self.assertEquals(e.exception.gerror.domain, Gst.StreamError)
         # our empty file triggers TYPE_NOT_FOUND
         self.assertEquals(e.exception.gerror.code,
-            gst.STREAM_ERROR_TYPE_NOT_FOUND)
+            Gst.StreamError.TYPE_NOT_FOUND)
         os.unlink(path)
 
 

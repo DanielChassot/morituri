@@ -27,8 +27,8 @@ import tempfile
 import pickle
 import shutil
 
-import gobject
-gobject.threads_init()
+from gi.repository import GObject
+GObject.threads_init()
 import gtk
 
 from morituri.common import checksum, task, taskgtk, common

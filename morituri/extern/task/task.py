@@ -22,7 +22,7 @@
 
 import sys
 
-import gobject
+from gi.repository import GObject
 
 class TaskException(Exception):
     """
@@ -456,7 +456,7 @@ class TaskRunner(LogStub):
 
 class SyncRunner(TaskRunner, ITaskListener):
     """
-    I run the task synchronously in a gobject MainLoop.
+    I run the task synchronously in a GObject MainLoop.
     """
     def __init__(self, verbose=True):
         self._verbose = verbose
@@ -470,11 +470,11 @@ class SyncRunner(TaskRunner, ITaskListener):
             self._verboseRun = verbose
         self._skip = skip
 
-        self._loop = gobject.MainLoop()
+        self._loop = GObject.MainLoop()
         self._task.addListener(self)
         # only start the task after going into the mainloop,
         # otherwise the task might complete before we are in it
-        gobject.timeout_add(0L, self._startWrap, self._task)
+        GObject.timeout_add(0L, self._startWrap, self._task)
         self.debug('run loop')
         self._loop.run()
 
@@ -519,7 +519,7 @@ class SyncRunner(TaskRunner, ITaskListener):
         self.log('schedule: scheduling %r(*args=%r, **kwargs=%r)',
             callable, args, kwargs)
 
-        gobject.timeout_add(int(delta * 1000L), c)
+        GObject.timeout_add(int(delta * 1000L), c)
 
     ### ITaskListener methods
     def progressed(self, task, value):

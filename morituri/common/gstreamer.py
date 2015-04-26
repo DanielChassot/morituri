@@ -31,8 +31,8 @@ from morituri.common import log
 def removeAudioParsers():
     log.debug('gstreamer', 'Removing buggy audioparsers plugin if needed')
 
-    import gst
-    registry = gst.registry_get_default()
+    from gi.repository import Gst
+    registry = Gst.registry_get_default()
 
     plugin = registry.find_plugin("audioparsersbad")
     if plugin:
@@ -54,12 +54,12 @@ def removeAudioParsers():
         registry.remove_plugin(plugin)
 
 def gstreamerVersion():
-    import gst
-    return _versionify(gst.version())
+    from gi.repository import Gst
+    return _versionify(Gst.version())
 
 def gstPythonVersion():
-    import gst
-    return _versionify(gst.pygst_version)
+    from gi.repository import Gst
+    return _versionify(Gst.pygst_version)
 
 _VERSION_RE = re.compile(
     "Version:\s*(?P<version>[\d.]+)")
@@ -68,9 +68,9 @@ def elementFactoryVersion(name):
     # surprisingly, there is no python way to get from an element factory
     # to its plugin and its version directly; you can only compare
     # with required versions
-    # Let's use gst-inspect-0.10 and wave hands and assume it points to the
+    # Let's use gst-inspect-1.0 and wave hands and assume it points to the
     # same version that python uses
-    output = commands.getoutput('gst-inspect-0.10 %s | grep Version' % name)
+    output = commands.getoutput('gst-inspect-1.0 %s | grep Version' % name)
     m = _VERSION_RE.search(output)
     if not m:
         return None

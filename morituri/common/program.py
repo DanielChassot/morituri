@@ -463,8 +463,8 @@ class Program(log.Loggable):
                 # htoa defaults to disc's artist
                 title = 'Hidden Track One Audio'
 
-        # here to avoid import gst eating our options
-        import gst
+        # here to avoid import Gst eating our options
+        from gi.repository import Gst
 
         ret = gst.TagList()
 
@@ -473,15 +473,15 @@ class Program(log.Loggable):
         # see http://bugzilla.gnome.org/show_bug.cgi?id=584445
         if self.metadata and self.metadata.various:
             ret["album-artist"] = albumArtist.encode('utf-8')
-        ret[gst.TAG_ARTIST] = trackArtist.encode('utf-8')
-        ret[gst.TAG_TITLE] = title.encode('utf-8')
-        ret[gst.TAG_ALBUM] = disc.encode('utf-8')
+        ret[Gst.TAG_ARTIST] = trackArtist.encode('utf-8')
+        ret[Gst.TAG_TITLE] = title.encode('utf-8')
+        ret[Gst.TAG_ALBUM] = disc.encode('utf-8')
 
         # gst-python 0.10.15.1 does not handle tags that are UINT
         # see gst-python commit 26fa6dd184a8d6d103eaddf5f12bd7e5144413fb
         # FIXME: no way to compare against 'master' version after 0.10.15
-        if gst.pygst_version >= (0, 10, 15):
-            ret[gst.TAG_TRACK_NUMBER] = number
+        if Gst.pygst_version >= (0, 10, 15):
+            ret[Gst.TAG_TRACK_NUMBER] = number
         if self.metadata:
             # works, but not sure we want this
             # if gst.pygst_version >= (0, 10, 15):
@@ -513,7 +513,7 @@ class Program(log.Loggable):
                 ret["musicbrainz-albumartistid"] = mbidTrackAlbum
                 ret["musicbrainz-discid"] = mbDiscId
 
-        # FIXME: gst.TAG_ISRC
+        # FIXME: Gst.TAG_ISRC
 
         return ret
 
@@ -534,7 +534,7 @@ class Program(log.Loggable):
         return (start, stop)
 
     def verifyTrack(self, runner, trackResult):
-        # here to avoid import gst eating our options
+        # here to avoid import Gst eating our options
         from morituri.common import checksum
 
         t = checksum.CRC32Task(trackResult.filename)

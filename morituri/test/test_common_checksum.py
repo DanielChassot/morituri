@@ -4,8 +4,8 @@
 import os
 import tempfile
 
-import gobject
-gobject.threads_init()
+from gi.repository import GObject
+GObject.threads_init()
 
 from morituri.common import checksum, task as ctask
 
