@@ -429,12 +429,12 @@ class Program(log.Loggable):
 
     def getTagList(self, number):
         """
-        Based on the metadata, get a gst.TagList for the given track.
+        Based on the metadata, get a tagList for the given track.
 
         @param number:   track number (0 for HTOA)
         @type  number:   int
 
-        @rtype: L{gst.TagList}
+        @rtype: L{dict}
         """
         trackArtist = u'Unknown Artist'
         albumArtist = u'Unknown Artist'
@@ -466,7 +466,7 @@ class Program(log.Loggable):
         # here to avoid import Gst eating our options
         from gi.repository import Gst
 
-        ret = gst.TagList()
+        ret = {}
 
         # gst-python 0.10.15.1 does not handle unicode -> utf8 string
         # conversion
@@ -480,30 +480,15 @@ class Program(log.Loggable):
         # gst-python 0.10.15.1 does not handle tags that are UINT
         # see gst-python commit 26fa6dd184a8d6d103eaddf5f12bd7e5144413fb
         # FIXME: no way to compare against 'master' version after 0.10.15
-        if Gst.pygst_version >= (0, 10, 15):
-            ret[Gst.TAG_TRACK_NUMBER] = number
+        #if Gst.pygst_version >= (0, 10, 15):
+        ret[Gst.TAG_TRACK_NUMBER] = number
         if self.metadata:
             # works, but not sure we want this
-            # if gst.pygst_version >= (0, 10, 15):
-            #     ret[gst.TAG_TRACK_COUNT] = len(self.metadata.tracks)
-            # hack to get a GstDate which we cannot instantiate directly in
-            # 0.10.15.1
-            # FIXME: The dates are strings and must have the format 'YYYY',
-            # 'YYYY-MM' or 'YYYY-MM-DD'.
-            # GstDate expects a full date, so default to
-            # Jan and 1st if MM and DD are missing
+            # if Gst.pygst_version >= (0, 10, 15):
+            #     ret[Gst.TAG_TRACK_COUNT] = len(self.metadata.tracks)
             date = self.metadata.release
             if date:
-                log.debug('metadata',
-                    'Converting release date %r to structure', date)
-                if len(date) == 4:
-                    date += '-01'
-                if len(date) == 7:
-                    date += '-01'
-
-                s = gst.structure_from_string('hi,date=(GstDate)%s' %
-                    str(date))
-                ret[gst.TAG_DATE] = s['date']
+                ret[Gst.TAG_DATE_TIME] = date
 
             # no musicbrainz info for htoa tracks
             if number > 0:

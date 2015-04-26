@@ -440,7 +440,7 @@ class ReadVerifyTrackTask(log.Loggable, task.MultiSeparateTask):
         @param profile: the encoding profile
         @type  profile: L{encode.Profile}
         @param taglist: a list of tags
-        @param taglist: L{gst.TagList}
+        @param taglist: L{dict}
         """
         task.MultiSeparateTask.__init__(self)
 

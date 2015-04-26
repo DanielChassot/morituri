@@ -129,10 +129,20 @@ def tagListToDict(tl):
     from gi.repository import Gst
 
     d = {}
-    for key in tl.keys():
-        if key == gst.TAG_DATE:
-            date = tl[key]
-            d[key] = "%4d-%2d-%2d" % (date.year, date.month, date.day)
+    for i in range(tl.n_tags()):
+        key = tl.nth_tag_name(i)
+        value = tl.get_value_index(key, 0)
+        if key == Gst.TAG_DATE_TIME:
+            date = value
+            if date.has_year():
+                sdate="%4d" % date.get_year()
+            else:
+                raise Exception('Missing year information')
+            if date.has_month():
+                sdate+="-%.2d" % date.get_month()
+            if date.has_day():
+                sdate+="-%.2d" % date.get_day()
+            d[key] = sdate
         elif key in [
             Gst.TAG_AUDIO_CODEC,
             Gst.TAG_VIDEO_CODEC,
@@ -142,23 +152,49 @@ def tagListToDict(tl):
             ]:
             pass
         else:
-            d[key] = tl[key]
+            d[key] = value
     return d
 
 
-def tagListEquals(tl1, tl2):
-    d1 = tagListToDict(tl1)
-    d2 = tagListToDict(tl2)
+def dictToTagList(dict):
+    """
+    Converts dict to Gst.TagList.
+    """
+    from gi.repository import Gst, GObject
 
-    return d1 == d2
+    tl = Gst.TagList.new_empty()
+    for tag, value in dict.iteritems():
+        if tag == 'track-number':
+            value = GObject.Value(GObject.TYPE_UINT, value)
+        elif tag == Gst.TAG_DATE_TIME:
+            log.debug('metadata',
+                      'Converting release date %r to structure', value)
+            dates = value.split('-')
+            datei=[]
+
+            for i in range(len(dates)):
+                datei.append(int(dates[i]))
+
+            if len(datei)==1:
+                value = Gst.DateTime.new_y(datei[0])
+            elif len(datei)==2:
+                value = Gst.DateTime.new_ym(datei[0], datei[1])
+            elif len(datei)==3:
+                value = Gst.DateTime.new_ymd(datei[0], datei[1], datei[2])
+            else:
+                value = None
+
+        if value:
+            tl.add_value(Gst.TagMergeMode.APPEND, tag, value)
+    return tl
+
+
+def tagListEquals(tl1, tl2):
+    return tl1 == tl2
 
 
 def tagListDifference(tl1, tl2):
-    d1 = tagListToDict(tl1)
-    d2 = tagListToDict(tl2)
-    return set(d1.keys()) - set(d2.keys())
-
-    return d1 == d2
+    return set(tl1.keys()) - set(tl2.keys())
 
 
 class MissingDependencyException(Exception):

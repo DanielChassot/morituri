@@ -80,7 +80,7 @@ def main(argv):
 
     options, args = parser.parse_args(argv[1:])
 
-    taglist = gst.TagList()
+    taglist = {}
     taglist[Gst.TAG_ARTIST] = 'Thomas'
     taglist[Gst.TAG_TITLE] = 'Yes'
     taskk = encode.EncodeTask(args[0], args[1], taglist=taglist)

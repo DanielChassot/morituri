@@ -226,10 +226,12 @@ class EncodeTask(ctask.GstPipelineTask):
 
         # set tags
         if tagger and self._taglist:
+            taglist = common.dictToTagList(self._taglist)
+                
             # FIXME: under which conditions do we not have merge_tags ?
             # See for example comment saying wavenc did not have it.
             try:
-                tagger.merge_tags(self._taglist, self.gst.TagMergeMode.APPEND)
+                tagger.merge_tags(taglist, self.gst.TagMergeMode.APPEND)
             except AttributeError, e:
                 self.warning('Could not merge tags: %r',
                     log.getExceptionMessage(e))
@@ -371,12 +373,15 @@ class TagReadTask(ctask.GstPipelineTask):
 
     def bus_tag_cb(self, bus, message):
         taglist = message.parse_tag()
-        self.debug('tag_cb, %d tags' % len(taglist.keys()))
+        self.debug('tag_cb, %d tags' % taglist.n_tags())
         if not self.taglist:
             self.taglist = taglist
         else:
             from gi.repository import Gst
             self.taglist = self.taglist.merge(taglist, Gst.TagMergeMode.REPLACE)
+
+    def getTagList(self):
+        return common.tagListToDict(self.taglist)
 
 
 class TagWriteTask(ctask.LoggableTask):
@@ -416,7 +421,8 @@ class TagWriteTask(ctask.LoggableTask):
         # set tags
         tagger = self._pipeline.get_by_name('tagger')
         if self._taglist:
-            tagger.merge_tags(self._taglist, Gst.TagMergeMode.APPEND)
+            tl = common.dictToTagList(self._taglist)
+            tagger.merge_tags(tl, Gst.TagMergeMode.APPEND)
 
         self.debug('pausing pipeline')
         self._pipeline.set_state(Gst.State.PAUSED)
@@ -494,18 +500,15 @@ class SafeRetagTask(ctask.LoggableMultiSeparateTask):
         if not taskk.exception:
             # Check if the tags are different or not
             if taskk == self.tasks[0]:
-                taglist = taskk.taglist.copy()
+                taglist = taskk.getTagList()
                 if common.tagListEquals(taglist, self._taglist):
-                    self.debug('tags are already fine: %r',
-                        common.tagListToDict(taglist))
+                    self.debug('tags are already fine: %r', taglist)
                 else:
                     # need to retag
                     self.debug('tags need to be rewritten')
-                    self.debug('Current tags: %r, new tags: %r',
-                        common.tagListToDict(taglist),
-                        common.tagListToDict(self._taglist))
-                    assert common.tagListToDict(taglist) \
-                        != common.tagListToDict(self._taglist)
+                    self.debug('Current tags: %r, new tags: %r', 
+                               taglist, self._taglist)
+                    assert taglist != self._taglist
                     self.tasks.append(checksum.CRC32Task(self._path))
                     self._fd, self._tmppath = tempfile.mkstemp(
                         dir=os.path.dirname(self._path), suffix=u'.morituri')
@@ -514,7 +517,7 @@ class SafeRetagTask(ctask.LoggableMultiSeparateTask):
                     self.tasks.append(checksum.CRC32Task(self._tmppath))
                     self.tasks.append(TagReadTask(self._tmppath))
             elif len(self.tasks) > 1 and taskk == self.tasks[4]:
-                if common.tagListEquals(self.tasks[4].taglist, self._taglist):
+                if common.tagListEquals(self.tasks[4].getTagList(), self._taglist):
                     self.debug('tags written successfully')
                     c1 = self.tasks[1].checksum
                     c2 = self.tasks[3].checksum
@@ -532,10 +535,10 @@ class SafeRetagTask(ctask.LoggableMultiSeparateTask):
                         self.setAndRaiseException(e)
                 else:
                     self.debug('failed to update tags, only have %r',
-                        common.tagListToDict(self.tasks[4].taglist))
+                               self.tasks[4].getTagList())
                     self.debug('difference: %r',
-                        common.tagListDifference(self.tasks[4].taglist,
-                            self._taglist))
+                        common.tagListDifference(self.tasks[4].getTagList(),
+                                                 self._taglist))
                     os.unlink(self._tmppath)
                     e = TypeError("Tags not written")
                     self.setAndRaiseException(e)

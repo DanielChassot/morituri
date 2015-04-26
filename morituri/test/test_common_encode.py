@@ -69,8 +69,8 @@ class TagReadTestCase(common.TestCase):
         t = encode.TagReadTask(path)
         self.runner.run(t)
         self.failUnless(t.taglist)
-        self.assertEquals(t.taglist['audio-codec'], 'FLAC')
-        self.assertEquals(t.taglist['description'], 'audiotest wave')
+        self.assertEquals(t.taglist.get_value_index('audio-codec', 0), 'FLAC')
+        self.assertEquals(t.taglist.get_value_index('description', 0), 'audiotest wave')
 
 
 class TagWriteTestCase(common.TestCase):
@@ -91,7 +91,7 @@ class TagWriteTestCase(common.TestCase):
 
         fd, outpath = tempfile.mkstemp(suffix=u'.morituri.tagwrite.flac')
         self.runner = task.SyncRunner(verbose=False)
-        taglist = gst.TagList()
+        taglist = {}
         taglist[Gst.TAG_ARTIST] = 'Artist'
         taglist[Gst.TAG_TITLE] = 'Title'
 
@@ -101,10 +101,10 @@ class TagWriteTestCase(common.TestCase):
         t = encode.TagReadTask(outpath)
         self.runner.run(t)
         self.failUnless(t.taglist)
-        self.assertEquals(t.taglist['audio-codec'], 'FLAC')
-        self.assertEquals(t.taglist['description'], 'audiotest wave')
-        self.assertEquals(t.taglist[Gst.TAG_ARTIST], 'Artist')
-        self.assertEquals(t.taglist[Gst.TAG_TITLE], 'Title')
+        self.assertEquals(t.taglist.get_value_index('audio-codec', 0), 'FLAC')
+        self.assertEquals(t.taglist.get_value_index('description', 0), 'audiotest wave')
+        self.assertEquals(t.taglist.get_value_index(Gst.TAG_ARTIST, 0), 'Artist')
+        self.assertEquals(t.taglist.get_value_index(Gst.TAG_TITLE, 0), 'Title')
 
         os.unlink(inpath)
         os.unlink(outpath)
@@ -128,7 +128,7 @@ class SafeRetagTestCase(common.TestCase):
         os.unlink(self._path)
 
     def testNoChange(self):
-        taglist = gst.TagList()
+        taglist = {}
         taglist[Gst.TAG_DESCRIPTION] = 'audiotest wave'
         taglist[Gst.TAG_AUDIO_CODEC] = 'FLAC'
 
@@ -136,7 +136,7 @@ class SafeRetagTestCase(common.TestCase):
         self.runner.run(t)
 
     def testChange(self):
-        taglist = gst.TagList()
+        taglist = {}
         taglist[Gst.TAG_DESCRIPTION] = 'audiotest retagged'
         taglist[Gst.TAG_AUDIO_CODEC] = 'FLAC'
         taglist[Gst.TAG_ARTIST] = 'Artist'
