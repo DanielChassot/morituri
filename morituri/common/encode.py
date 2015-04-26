@@ -239,26 +239,12 @@ class EncodeTask(ctask.GstPipelineTask):
     def paused(self):
         # get length
         identity = self.pipeline.get_by_name('identity')
-        self.debug('query duration')
-        try:
-            length, qformat = identity.query_duration(self.gst.Fotmat.DEFAULT)
-        except self.gst.QueryError, e:
-            self.setException(e)
-            self.stop()
-            return
 
-
-        # wavparse 0.10.14 returns in bytes
-        if qformat == self.gst.Format.BYTES:
-            self.debug('query returned in BYTES format')
-            length /= 4
-        self.debug('total length: %r', length)
+        length = self.query_length(identity)
         self._length = length
 
-        duration = None
-        try:
-            duration, qformat = identity.query_duration(self.gst.Format.TIME)
-        except self.gst.QueryError, e:
+        res, duration = identity.query_duration(self.gst.Format.TIME)
+        if not res:
             self.debug('Could not query duration')
         self._duration = duration
 

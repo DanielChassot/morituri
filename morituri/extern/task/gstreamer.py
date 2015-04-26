@@ -221,53 +221,23 @@ class GstPipelineTask(task.Task):
 
     def query_length(self, element):
         """
-        Query the length of the pipeline in samples, for progress updates.
+        Query the length of the pipeline in samples.
         To be called from paused()
         """
         # get duration
         self.debug('query duration')
-        try:
-            duration, qformat = element.query_duration(self.gst.Format.DEFAULT)
-        except self.gst.QueryError, e:
-            # Fall back to time; for example, oggdemux/vorbisdec only supports
-            # TIME
-            try:
-                duration, qformat = element.query_duration(self.gst.Format.TIME)
-            except self.gst.QueryError, e:
-                self.setException(e)
-                # schedule it, otherwise runner can get set to None before
-                # we're done starting
-                self.schedule(0, self.stop)
-                return
+        res, length = element.query_duration(self.gst.Format.DEFAULT)
+        if not res:
+            self.setException(Exception('QueryError'))
+            # schedule it, otherwise runner can get set to None before
+            # we're done starting
+            self.schedule(0, self.stop)
+            return
 
-        # wavparse 0.10.14 returns in bytes
-        if qformat == self.gst.Format.BYTES:
-            self.debug('query returned in BYTES format')
-            duration /= 4
+        length = int(length * 44100.0 / self.gst.SECOND + 0.5)
 
-        if qformat == self.gst.Format.TIME:
-            rate = None
-            self.debug('query returned in TIME format')
-            # we need sample rate
-            pads = list(element.pads())
-            sink = element.get_by_name('sink')
-            pads += list(sink.pads())
+        self.debug('total sample length: %r', length)
 
-            for pad in pads:
-                caps = pad.get_negotiated_caps()
-                print caps[0].keys()
-                if 'rate' in caps[0].keys():
-                    rate = caps[0]['rate']
-                    self.debug('Sample rate: %d Hz', rate)
-
-            if not rate:
-                raise KeyError(
-                    'Cannot find sample rate, cannot convert to samples')
-
-            duration = int(float(rate) * (float(duration) / self.gst.SECOND))
-
-        self.debug('total duration: %r', duration)
-
-        return duration
+        return length
 
 

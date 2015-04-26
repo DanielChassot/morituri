@@ -178,18 +178,8 @@ class AudioLengthTask(log.Loggable, gstreamer.GstPipelineTask):
         sink = self.pipeline.get_by_name('sink')
         assert sink, 'Error constructing pipeline'
 
-        try:
-            length, qformat = sink.query_duration(self.gst.Format.DEFAULT)
-        except self.gst.QueryError, e:
-            self.info('failed to query duration of %r' % self._path)
-            self.setException(e)
-            raise
-
-        # wavparse 0.10.14 returns in bytes
-        if qformat == self.gst.Format.BYTES:
-            self.debug('query returned in BYTES format')
-            length /= 4
-        self.debug('total length of %r in samples: %d', self._path, length)
+        self.debug('query length of %r', self._path)
+        length = self.query_length(sink)
         self.length = length
 
         self.pipeline.set_state(self.gst.State.NULL)

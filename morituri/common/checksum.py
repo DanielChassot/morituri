@@ -106,18 +106,7 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
         # get length in samples of file
         sink = self.pipeline.get_by_name('sink')
 
-        self.debug('query duration')
-        try:
-            length, qformat = sink.query_duration(self.gst.Format.DEFAULT)
-        except gst.QueryError, e:
-            self.setException(e)
-            return None
-
-        # wavparse 0.10.14 returns in bytes
-        if qformat == gst.Format.BYTES:
-            self.debug('query returned in BYTES format')
-            length /= 4
-        self.debug('total sample length of file: %r', length)
+        length = self.query_length(sink)
 
         return length
 
@@ -359,7 +348,7 @@ class TRMTask(task.GstPipelineTask):
     def paused(self):
         Gst.debug('query duration')
 
-        self._length, qformat = self.pipeline.query_duration(Gst.Format.TIME)
+        res, self._length = self.pipeline.query_duration(Gst.Format.TIME)
         Gst.debug('total length: %r' % self._length)
         Gst.debug('scheduling setting to play')
         # since set_state returns non-False, adding it as timeout_add
