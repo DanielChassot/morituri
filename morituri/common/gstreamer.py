@@ -57,10 +57,6 @@ def gstreamerVersion():
     from gi.repository import Gst
     return _versionify(Gst.version())
 
-def gstPythonVersion():
-    from gi.repository import Gst
-    return _versionify(Gst.pygst_version)
-
 _VERSION_RE = re.compile(
     "Version:\s*(?P<version>[\d.]+)")
 

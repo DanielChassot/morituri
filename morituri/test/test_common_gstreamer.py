@@ -12,10 +12,6 @@ class VersionTestCase(common.TestCase):
         version = gstreamer.gstreamerVersion()
         self.failUnless(version.startswith('0.'))
 
-    def testGSTPython(self):
-        version = gstreamer.gstPythonVersion()
-        self.failUnless(version.startswith('0.'))
-
     def testFlacEnc(self):
         version = gstreamer.elementFactoryVersion('flacenc')
         self.failUnless(version.startswith('0.'))
