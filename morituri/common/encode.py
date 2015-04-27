@@ -60,7 +60,7 @@ class FlacProfile(Profile):
         # here to avoid import gst eating our options
         from gi.repository import Gst
 
-        plugin = Gst.registry_get_default().find_plugin('flac')
+        plugin = Gst.Registry.get().find_plugin('flac')
         if not plugin:
             print 'ERROR: cannot find flac plugin'
             return False
