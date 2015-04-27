@@ -226,7 +226,7 @@ class GstPipelineTask(task.Task):
         """
         # get duration
         self.debug('query duration')
-        res, length = element.query_duration(self.gst.Format.DEFAULT)
+        res, length = element.query_duration(self.gst.Format.TIME)
         if not res:
             self.setException(Exception('QueryError'))
             # schedule it, otherwise runner can get set to None before
