@@ -202,8 +202,6 @@ class EncodeTask(ctask.GstPipelineTask):
         self.description = "Encoding %s" % what
         self._profile.test()
 
-        cgstreamer.removeAudioParsers()
-
     def getPipelineDesc(self):
         # start with an emit interval of one frame, because we end up setting
         # the final interval after paused and after processing some samples
