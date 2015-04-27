@@ -269,13 +269,16 @@ class EncodeTask(ctask.GstPipelineTask):
         # we connect to level because this gives us offset in samples
         srcpad = self._level.get_static_pad('src')
         self.gst.debug('adding srcpad buffer probe to %r' % srcpad)
-        ret = srcpad.add_buffer_probe(self._probe_handler)
+        ret = srcpad.add_probe(self.gst.PadProbeType.BUFFER, 
+                               self._probe_handler, None)
         self.gst.debug('added srcpad buffer probe to %r: %r' % (srcpad, ret))
+        return False
 
-    def _probe_handler(self, pad, buffer):
+    def _probe_handler(self, pad, info, user_data):
         # update progress based on buffer offset (expected to be in samples)
         # versus length in samples
         # marshal to main thread
+        buffer = info.get_buffer()
         self.schedule(0, self.setProgress,
             float(buffer.offset) / self._length)
 
@@ -290,7 +293,7 @@ class EncodeTask(ctask.GstPipelineTask):
         if message.src != self._level:
             return
 
-        s = message.structure
+        s = message.get_structure()
         if s.get_name() != 'level':
             return
 
