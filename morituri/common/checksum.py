@@ -148,7 +148,7 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
             self.debug('event sent, result %r', result)
             if not result:
                 self.error('Failed to select samples with GStreamer seek event')
-        sink.connect('new-buffer', self._new_buffer_cb)
+        sink.connect('new-sample', self._new_sample_cb)
         sink.connect('eos', self._eos_cb)
 
         self.debug('scheduling setting to play')
@@ -176,8 +176,8 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
         else:
             self._checksum = self._checksum % 2 ** 32
             self.debug("last buffer's sample offset %r", self._last.offset)
-            self.debug("last buffer's sample size %r", len(self._last) / 4)
-            last = self._last.offset + len(self._last) / 4 - 1
+            self.debug("last buffer's sample size %r", self._last.get_size() / 4)
+            last = self._last.offset + self._last.get_size() / 4 - 1
             self.debug("last sample offset in buffer: %r", last)
             self.debug("requested sample end: %r", self._sampleEnd)
             self.debug("requested sample length: %r", self._sampleLength)
@@ -209,16 +209,17 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
 
     ### private methods
 
-    def _new_buffer_cb(self, sink):
-        buf = sink.emit('pull-buffer')
+    def _new_sample_cb(self, sink):
+        sample = sink.emit('pull-sample')
+        buf = sample.get_buffer()
         Gst.log('received new buffer at offset %r with length %r' % (
-            buf.offset, buf.size))
+            buf.offset, buf.get_size()))
         if self._first is None:
             self._first = buf.offset
             self.debug('first sample is sample offset %r', self._first)
         self._last = buf
 
-        assert len(buf) % 4 == 0, "buffer is not a multiple of 4 bytes"
+        assert buf.get_size() % 4 == 0, "buffer is not a multiple of 4 bytes"
 
         # FIXME: gst-python 0.10.14.1 doesn't have adapter_peek/_take wrapped
         # see http://bugzilla.gnome.org/show_bug.cgi?id=576505
@@ -228,8 +229,9 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
             # FIXME: in 0.10.14.1, take_buffer leaks a ref
             buf = self._adapter.take_buffer(common.BYTES_PER_FRAME)
 
-            self._checksum = self.do_checksum_buffer(buf, self._checksum)
-            self._bytes += len(buf)
+            buffer = buf.extract_dup(0, buf.get_size())
+            self._checksum = self.do_checksum_buffer(buffer, self._checksum)
+            self._bytes += buf.get_size()
 
             # update progress
             sample = self._first + self._bytes / 4
@@ -237,6 +239,7 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
             progress = float(samplesDone) / float((self._sampleLength))
             # marshal to the main thread
             self.schedule(0, self.setProgress, progress)
+        return False
 
     def _eos_cb(self, sink):
         # get the last one; FIXME: why does this not get to us before ?
