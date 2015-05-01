@@ -85,8 +85,6 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
         self._sampleEnd = None
         self._checksum = 0
         self._bytes = 0 # number of bytes received
-        self._first = None
-        self._last = None
         self._adapter = GstBase.Adapter()
 
         self.checksum = None # result
@@ -167,25 +165,21 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
 
     def stopped(self):
         self.debug('stopped')
-        if not self._last:
+        if self._bytes == 0:
             # see http://bugzilla.gnome.org/show_bug.cgi?id=578612
             self.debug(
-                'not a single buffer gotten, setting exception EmptyError')
-            self.setException(common.EmptyError('not a single buffer gotten'))
+                'not a single byte gotten, setting exception EmptyError')
+            self.setException(common.EmptyError('not a single byte gotten'))
             return
         else:
             self._checksum = self._checksum % 2 ** 32
-            self.debug("last buffer's sample offset %r", self._last.offset)
-            self.debug("last buffer's sample size %r", self._last.get_size() / 4)
-            last = self._last.offset + self._last.get_size() / 4 - 1
-            self.debug("last sample offset in buffer: %r", last)
             self.debug("requested sample end: %r", self._sampleEnd)
             self.debug("requested sample length: %r", self._sampleLength)
             self.debug("checksum: %08X", self._checksum)
             self.debug("bytes: %d", self._bytes)
-            if self._sampleEnd != last:
-                msg = 'did not get all samples, %d of %d missing' % (
-                    self._sampleEnd - last, self._sampleEnd)
+            if self._sampleLength != self._bytes / 4:
+                msg = 'did not get all samples, exptectd %d, got %d' % (
+                    self._sampleLength, self._bytes / 4)
                 self.warning(msg)
                 self.setExceptionAndTraceback(common.MissingFrames(msg))
                 return
@@ -214,10 +208,6 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
         buf = sample.get_buffer()
         Gst.log('received new buffer at offset %r with length %r' % (
             buf.offset, buf.get_size()))
-        if self._first is None:
-            self._first = buf.offset
-            self.debug('first sample is sample offset %r', self._first)
-        self._last = buf
 
         assert buf.get_size() % 4 == 0, "buffer is not a multiple of 4 bytes"
 
@@ -234,8 +224,7 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
             self._bytes += buf.get_size()
 
             # update progress
-            sample = self._first + self._bytes / 4
-            samplesDone = sample - self._sampleStart
+            samplesDone = self._bytes / 4
             progress = float(samplesDone) / float((self._sampleLength))
             # marshal to the main thread
             self.schedule(0, self.setProgress, progress)
