@@ -225,9 +225,9 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
 
             # update progress
             samplesDone = self._bytes / 4
-            progress = float(samplesDone) / float((self._sampleLength))
+            progress = float(samplesDone) / float(self._sampleLength)
             # marshal to the main thread
-            self.schedule(0, self.setProgress, progress)
+            self.setProgress(progress)
         return False
 
     def _eos_cb(self, sink):

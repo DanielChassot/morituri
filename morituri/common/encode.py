@@ -278,8 +278,7 @@ class EncodeTask(ctask.GstPipelineTask):
         # versus length in samples
         # marshal to main thread
         buffer = info.get_buffer()
-        self.schedule(0, self.setProgress,
-            float(buffer.offset) / self._length)
+        self.setProgress(float(buffer.offset) / self._length)
 
         # don't drop the buffer
         return True
@@ -308,8 +307,7 @@ class EncodeTask(ctask.GstPipelineTask):
         # FIXME: works around a bug on F-15 where buffer probes don't seem
         # to get triggered to update progress
         if self._duration is not None:
-            self.schedule(0, self.setProgress,
-                float(s['stream-time'] + s['duration']) / self._duration)
+            self.setProgress(float(s['stream-time'] + s['duration']) / self._duration)
 
     def stopped(self):
         if self._peakdB is not None:
