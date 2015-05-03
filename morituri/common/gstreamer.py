@@ -25,6 +25,34 @@ import commands
 
 from morituri.common import log
 
+# workaround for issue #64
+
+
+def removeAudioParsers():
+    log.debug('gstreamer', 'Removing buggy audioparsers plugin if needed')
+
+    from gi.repository import Gst
+    registry = Gst.registry_get_default()
+
+    plugin = registry.find_plugin("audioparsersbad")
+    if plugin:
+        # always remove from bad
+        log.debug('gstreamer', 'removing audioparsersbad plugin from registry')
+        registry.remove_plugin(plugin)
+
+    plugin = registry.find_plugin("audioparsers")
+    if plugin:
+        log.debug('gstreamer', 'removing audioparsers plugin from %s %s',
+            plugin.get_source(), plugin.get_version())
+
+        # the query bug was fixed after 0.10.30 and before 0.10.31
+        # the seek bug is still there though
+        # if plugin.get_source() == 'gst-plugins-good' \
+        #   and plugin.get_version() > '0.10.30.1':
+        #    return
+
+        registry.remove_plugin(plugin)
+
 def gstreamerVersion():
     from gi.repository import Gst
     return _versionify(Gst.version())

@@ -89,6 +89,8 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
 
         self.checksum = None # result
 
+        cgstreamer.removeAudioParsers()
+
     ### gstreamer.GstPipelineTask implementations
 
     def getPipelineDesc(self):
