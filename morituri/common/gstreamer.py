@@ -32,7 +32,8 @@ def removeAudioParsers():
     log.debug('gstreamer', 'Removing buggy audioparsers plugin if needed')
 
     from gi.repository import Gst
-    registry = Gst.registry_get_default()
+    Gst.init(None)
+    registry = Gst.Registry.get()
 
     plugin = registry.find_plugin("audioparsersbad")
     if plugin:
@@ -47,9 +48,9 @@ def removeAudioParsers():
 
         # the query bug was fixed after 0.10.30 and before 0.10.31
         # the seek bug is still there though
-        # if plugin.get_source() == 'gst-plugins-good' \
-        #   and plugin.get_version() > '0.10.30.1':
-        #    return
+        if plugin.get_source() == 'gst-plugins-good' \
+           and plugin.get_version() > '0.10.30.1':
+            return
 
         registry.remove_plugin(plugin)
 
