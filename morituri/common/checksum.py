@@ -22,6 +22,7 @@
 
 import os
 import struct
+import ctypes
 import zlib
 
 from gi.repository import Gst
@@ -264,34 +265,33 @@ class AccurateRipChecksumTask(ChecksumTask):
         ChecksumTask.__init__(self, path, sampleStart, sampleLength)
         self._trackNumber = trackNumber
         self._trackCount = trackCount
-        self._discFrameCounter = 0 # 1-based
 
     def __repr__(self):
         return "<AccurateRipCheckSumTask of track %d in %r>" % (
             self._trackNumber, self._path)
 
+    def paused(self):
+        ChecksumTask.paused(self)
+        self._firstAccuSample = 5 * common.SAMPLES_PER_FRAME - 1
+        self._lastAccuSample = self._sampleLength - 5 * common.SAMPLES_PER_FRAME
+    
     def do_checksum_buffer(self, buf, checksum):
-        self._discFrameCounter += 1
-
         # on first track ...
         if self._trackNumber == 1:
-            # ... skip first 4 CD frames
-            if self._discFrameCounter <= 4:
-                Gst.debug('skipping frame %d' % self._discFrameCounter)
-                return checksum
-            # ... on 5th frame, only use last value
-            elif self._discFrameCounter == 5:
-                values = struct.unpack("<I", buf[-4:])
-                checksum += common.SAMPLES_PER_FRAME * 5 * values[0]
-                checksum &= 0xFFFFFFFF
-                return checksum
+            # ... clear the first samples
+            if self._bytes < self._firstAccuSample * 4:
+                buf = ctypes.create_string_buffer(buf, len(buf))
+                for i in range(len(buf)):
+                    if self._bytes + i < self._firstAccuSample * 4:
+                        buf[i] = '\0'
 
-        # on last track, skip last 5 CD frames
+        # on last track, skip last samples
         if self._trackNumber == self._trackCount:
-            discFrameLength = self._sampleLength / common.SAMPLES_PER_FRAME
-            if self._discFrameCounter > discFrameLength - 5:
-                self.debug('skipping frame %d', self._discFrameCounter)
-                return checksum
+            if self._bytes + len(buf) >= self._lastAccuSample * 4:
+                buf = ctypes.create_string_buffer(buf, len(buf))
+                for i in range(len(buf)):
+                    if self._bytes + i >= self._lastAccuSample * 4:
+                        buf[i] = '\0'
 
         # self._bytes is updated after do_checksum_buffer
         factor = self._bytes / 4 + 1
