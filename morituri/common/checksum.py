@@ -26,7 +26,6 @@ import ctypes
 import zlib
 
 from gi.repository import Gst
-from gi.repository import GstBase
 
 from morituri.common import common
 from morituri.common import gstreamer as cgstreamer
@@ -86,7 +85,6 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
         self._sampleEnd = None
         self._checksum = 0
         self._bytes = 0 # number of bytes received
-        self._adapter = GstBase.Adapter()
 
         self.checksum = None # result
 
@@ -214,23 +212,15 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
 
         assert buf.get_size() % 4 == 0, "buffer is not a multiple of 4 bytes"
 
-        # FIXME: gst-python 0.10.14.1 doesn't have adapter_peek/_take wrapped
-        # see http://bugzilla.gnome.org/show_bug.cgi?id=576505
-        self._adapter.push(buf)
+        buffer = buf.extract_dup(0, buf.get_size())
+        self._checksum = self.do_checksum_buffer(buffer, self._checksum)
+        self._bytes += buf.get_size()
 
-        while self._adapter.available() >= common.BYTES_PER_FRAME:
-            # FIXME: in 0.10.14.1, take_buffer leaks a ref
-            buf = self._adapter.take_buffer(common.BYTES_PER_FRAME)
-
-            buffer = buf.extract_dup(0, buf.get_size())
-            self._checksum = self.do_checksum_buffer(buffer, self._checksum)
-            self._bytes += buf.get_size()
-
-            # update progress
-            samplesDone = self._bytes / 4
-            progress = float(samplesDone) / float(self._sampleLength)
-            # marshal to the main thread
-            self.setProgress(progress)
+        # update progress
+        samplesDone = self._bytes / 4
+        progress = float(samplesDone) / float(self._sampleLength)
+        # marshal to the main thread
+        self.setProgress(progress)
         return False
 
     def _eos_cb(self, sink):
