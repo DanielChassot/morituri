@@ -99,19 +99,10 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
             appsink name=sink sync=False emit-signals=True
             ''' % gstreamer.quoteParse(self._path).encode('utf-8')
 
-    def _getSampleLength(self):
-        # get length in samples of file
-        sink = self.pipeline.get_by_name('sink')
-
-        length = self.query_length(sink)
-
-        return length
-
-
     def paused(self):
         sink = self.pipeline.get_by_name('sink')
 
-        length = self._getSampleLength()
+        length = self.query_length(sink)
         if length is None:
             return
 
