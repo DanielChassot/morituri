@@ -235,7 +235,7 @@ class CRC32Task(ChecksumTask):
         return zlib.crc32(buf, checksum)
 
 
-class AccurateRipChecksumTask(ChecksumTask):
+class AccurateRipChecksumTaskPy(ChecksumTask):
     """
     I implement the AccurateRip checksum.
 
@@ -290,6 +290,65 @@ class AccurateRipChecksumTask(ChecksumTask):
 
         checksum &= 0xFFFFFFFF
         return checksum
+
+
+class AccurateRipChecksumTask(ChecksumTask):
+    """
+    I perform the AccurateRip checksum using gstreamer.
+
+    See http://www.accuraterip.com/
+    """
+
+    description = 'Calculating AccurateRip checksum (gstreamer)'
+
+    def __init__(self, path, trackNumber, trackCount, sampleStart=0,
+            sampleLength=-1):
+        ChecksumTask.__init__(self, path, sampleStart, sampleLength)
+        self._trackNumber = trackNumber
+        self._trackCount = trackCount
+        self.crcV1 = None
+        self.crcV2 = None
+
+
+    def __repr__(self):
+        return "<AccurateRipCheckSumTask(gstreamer) of track %d in %r>" % (
+            self._trackNumber, self._path)
+
+    def getPipelineDesc(self):
+        return '''
+            filesrc location="%s" !
+            decodebin !
+            audioconvert !
+            accurip first-track=%s last-track=%s !
+            fakesink name=sink signal-handoffs=True''' % (
+                gstreamer.quoteParse(self._path).encode('utf-8'),
+                self._trackNumber == 1,
+                self._trackNumber == self._trackCount)
+
+    def connect(self, sink):
+        sink = self.pipeline.get_by_name('sink')
+        sink.connect('handoff', self.handoff_cb)
+        res, self._length = self.pipeline.query_duration(Gst.Format.TIME)
+
+    def bus_eos_cb(self, bus, message):
+        self.debug('eos, scheduling stop')
+        self.schedule(0, self.stop)
+
+    def handoff_cb(self, sink, buf, pad):
+        self.setProgress(float(buf.pts) / self._length)
+
+    def bus_tag_cb(self, bus, message):
+        taglist = message.parse_tag()
+
+        stat1, crcV1 = taglist.get_uint('accurip-crc')
+        if stat1:
+            self.crcV1 = crcV1
+        stat2, crcV2 = taglist.get_uint('accurip-crcv2')
+        if stat2:
+            self.crcV2 = crcV2
+
+    def stopped(self):
+        self.checksum = self.crcV1
 
 
 class TRMTask(task.GstPipelineTask):
