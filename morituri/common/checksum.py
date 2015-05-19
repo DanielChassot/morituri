@@ -138,8 +138,7 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
             self.debug('event sent, result %r', result)
             if not result:
                 self.error('Failed to select samples with GStreamer seek event')
-        sink.connect('new-sample', self._new_sample_cb)
-        sink.connect('eos', self._eos_cb)
+        self.connect(sink)
 
         self.debug('scheduling setting to play')
         # since set_state returns non-False, adding it as timeout_add
@@ -154,6 +153,10 @@ class ChecksumTask(log.Loggable, gstreamer.GstPipelineTask):
 
         #self.pipeline.set_state(Gst.State.PLAYING)
         self.debug('scheduled setting to play')
+
+    def connect(self, sink):
+        sink.connect('new-sample', self._new_sample_cb)
+        sink.connect('eos', self._eos_cb)
 
     def stopped(self):
         self.debug('stopped')
