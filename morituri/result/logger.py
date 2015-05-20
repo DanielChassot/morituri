@@ -134,13 +134,17 @@ class MorituriLogger(result.Logger):
 
 
         if trackResult.accurip:
-            lines.append('  Accurately ripped (confidence %d) [%08X]' % (
-                trackResult.ARDBConfidence, trackResult.ARCRC))
+            if trackResult.ARDBCRC == trackResult.ARCRCV2:
+                lines.append('  Accurately ripped (confidence %d) [%08X] (AR v2)' % (
+                    trackResult.ARDBConfidence, trackResult.ARCRCV2))
+            else:
+                lines.append('  Accurately ripped (confidence %d) [%08X]' % (
+                    trackResult.ARDBConfidence, trackResult.ARCRCV1))
         else:
             if trackResult.ARDBCRC:
                 lines.append('  Cannot be verified as accurate '
                     '[%08X], AccurateRip returned [%08X]' % (
-                        trackResult.ARCRC, trackResult.ARDBCRC))
+                        trackResult.ARCRCV1, trackResult.ARDBCRC))
             else:
                 lines.append('  Track not present in AccurateRip database')
 

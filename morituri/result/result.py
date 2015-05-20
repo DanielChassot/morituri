@@ -39,9 +39,13 @@ class TrackResult:
                              the database, ...
     @type accurip:           bool
 
-    @var  ARCRC:             our calculated 4 byte AccurateRip CRC for this
+    @var  ARCRCV1:           our calculated 4 byte AccurateRipV1 CRC for this
                              track.
-    @type ARCRC:             int
+    @type ARCRCV1:           int
+
+    @var  ARCRCV2:           our calculated 4 byte AccurateRipV2 CRC for this
+                             track.
+    @type ARCRCV2:           int
 
     @var  ARDBCRC:           the 4-byte AccurateRip CRC this
                              track did or should have matched in the database.
@@ -67,7 +71,8 @@ class TrackResult:
     testcrc = None
     copycrc = None
     accurip = False # whether it's in the database
-    ARCRC = None
+    ARCRCV1 = None
+    ARCRCV2 = None
     ARDBCRC = None
     ARDBConfidence = None
     ARDBMaxConfidence = None

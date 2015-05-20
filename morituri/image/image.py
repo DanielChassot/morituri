@@ -141,7 +141,8 @@ class AccurateRipChecksumTask(log.Loggable, task.MultiSeparateTask):
             self.addTask(checksumTask)
 
     def stop(self):
-        self.checksums = [t.checksum for t in self.tasks]
+        self.crcsV1 = [t.crcV1 for t in self.tasks]
+        self.crcsV2 = [t.crcV2 for t in self.tasks]
         task.MultiSeparateTask.stop(self)
 
 

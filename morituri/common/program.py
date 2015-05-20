@@ -617,13 +617,14 @@ class Program(log.Loggable):
         runner.run(verifytask)
         runner.run(cuetask)
 
-        self._verifyImageWithChecksums(responses, cuetask.checksums)
+        self._verifyImageWithChecksums(responses, cuetask.crcsV1, cuetask.crcsV2)
 
-    def _verifyImageWithChecksums(self, responses, checksums):
+    def _verifyImageWithChecksums(self, responses, crcsV1, crcsV2):
         # loop over tracks to set our calculated AccurateRip CRC's
-        for i, csum in enumerate(checksums):
+        for i, (csumv1, csumv2) in enumerate(zip(crcsV1, crcsV2)):
             trackResult = self.result.getTrackResult(i + 1)
-            trackResult.ARCRC = csum
+            trackResult.ARCRCV1 = csumv1
+            trackResult.ARCRCV2 = csumv2
 
 
         if not responses:
@@ -631,7 +632,7 @@ class Program(log.Loggable):
             return
 
         # now loop to match responses
-        for i, csum in enumerate(checksums):
+        for i, (csumv1, csumv2) in enumerate(zip(crcsV1, crcsV2)):
             trackResult = self.result.getTrackResult(i + 1)
 
             confidence = None
@@ -639,10 +640,10 @@ class Program(log.Loggable):
 
             # match against each response's checksum for this track
             for j, r in enumerate(responses):
-                if "%08x" % csum == r.checksums[i]:
+                if "%08x" % csumv1 == r.checksums[i]:
                     response = r
                     self.debug(
-                        "Track %02d matched response %d of %d in "
+                        "Track %02d matched V1 response %d of %d in "
                         "AccurateRip database",
                         i + 1, j + 1, len(responses))
                     trackResult.accurip = True
@@ -651,6 +652,21 @@ class Program(log.Loggable):
                     # arsum = csum
                     confidence = r.confidences[i]
                     trackResult.ARDBConfidence = confidence
+                    break
+
+                if "%08x" % csumv2 == r.checksums[i]:
+                    response = r
+                    self.debug(
+                        "Track %02d matched V2 response %d of %d in "
+                        "AccurateRip database",
+                        i + 1, j + 1, len(responses))
+                    trackResult.accurip = True
+                    # FIXME: maybe checksums should be ints
+                    trackResult.ARDBCRC = int(r.checksums[i], 16)
+                    # arsum = csum
+                    confidence = r.confidences[i]
+                    trackResult.ARDBConfidence = confidence
+                    break
 
             if not trackResult.accurip:
                 self.warning("Track %02d: not matched in AccurateRip database",
@@ -702,15 +718,17 @@ class Program(log.Loggable):
 
                 ar = ", DB [%08x]" % trackResult.ARDBCRC
             # htoa tracks (i == 0) do not have an ARCRC
-            if trackResult.ARCRC is None:
+            if trackResult.ARCRCV1 is None and trackResult.ARCRCV2 is None:
                 assert trackResult.number == 0, \
                     'no trackResult.ARCRC on non-HTOA track %d' % \
                         trackResult.number
                 res.append("Track  0: unknown          (not tracked)")
+            elif trackResult.ARDBCRC==trackResult.ARCRCV2:
+                res.append("Track %2d: %s %s [%08x]%s (AR v2)" % (
+                    trackResult.number, status, c, trackResult.ARCRCV2, ar))
             else:
                 res.append("Track %2d: %s %s [%08x]%s" % (
-                    trackResult.number, status, c, trackResult.ARCRC, ar))
-
+                    trackResult.number, status, c, trackResult.ARCRCV1, ar))
         return res
 
     def writeCue(self, discName):
