@@ -638,7 +638,7 @@ class Program(log.Loggable):
             confidence = None
             response = None
 
-            # match against each response's checksum for this track
+            # AR v1: match against each response's checksum for this track
             for j, r in enumerate(responses):
                 if "%08x" % csumv1 == r.checksums[i]:
                     response = r
@@ -654,19 +654,22 @@ class Program(log.Loggable):
                     trackResult.ARDBConfidence = confidence
                     break
 
-                if "%08x" % csumv2 == r.checksums[i]:
-                    response = r
-                    self.debug(
-                        "Track %02d matched V2 response %d of %d in "
-                        "AccurateRip database",
-                        i + 1, j + 1, len(responses))
-                    trackResult.accurip = True
-                    # FIXME: maybe checksums should be ints
-                    trackResult.ARDBCRC = int(r.checksums[i], 16)
-                    # arsum = csum
-                    confidence = r.confidences[i]
-                    trackResult.ARDBConfidence = confidence
-                    break
+            # AR v2: match against each response's checksum for this track
+            if not trackResult.accurip:
+                for j, r in enumerate(responses):
+                    if "%08x" % csumv2 == r.checksums[i]:
+                        response = r
+                        self.debug(
+                            "Track %02d matched V2 response %d of %d in "
+                            "AccurateRip database",
+                            i + 1, j + 1, len(responses))
+                        trackResult.accurip = True
+                        # FIXME: maybe checksums should be ints
+                        trackResult.ARDBCRC = int(r.checksums[i], 16)
+                        # arsum = csum
+                        confidence = r.confidences[i]
+                        trackResult.ARDBConfidence = confidence
+                        break
 
             if not trackResult.accurip:
                 self.warning("Track %02d: not matched in AccurateRip database",
